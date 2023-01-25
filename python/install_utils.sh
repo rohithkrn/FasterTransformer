@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2023 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file
@@ -8,14 +9,9 @@
 # or in the "LICENSE.txt" file accompanying this file. This file is distributed on an "AS IS"
 # BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for
 # the specific language governing permissions and limitations under the License.
-import torch
-from .ftmodel import InferenceModel
-
-
-def init_inference(model: torch.nn.Module,
-                   tensor_parallel_degree: int,
-                   pipeline_parallel_degree: int,
-                   **kwargs):
-    inference_model = InferenceModel(model, tensor_parallel_degree, pipeline_parallel_degree, **kwargs)
-    inference_model.initialize()
-    return inference_model.ft_model
+# copy t5 source scripts to toolkit directory
+mkdir -p fastertransformer/examples/t5
+echo "" > fastertransformer/examples/t5/__init__.py
+echo "" > fastertransformer/examples/__init__.py
+cp ../examples/pytorch/t5/utils/ft_encoder.py fastertransformer/examples/t5/
+cp ../examples/pytorch/t5/utils/ft_decoding.py fastertransformer/examples/t5/
