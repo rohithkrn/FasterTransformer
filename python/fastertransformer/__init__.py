@@ -12,5 +12,10 @@ import torch
 from .ftmodel import InferenceModel
 
 
-def init_inference(model: torch.nn.Module, tp_size: int, **kwargs):
-    InferenceModel(model, tp_size, **kwargs)
+def init_inference(model: torch.nn.Module,
+                   tensor_parallel_degree: int,
+                   pipeline_parallel_degree: int,
+                   **kwargs):
+    inference_model = InferenceModel(model, tensor_parallel_degree, pipeline_parallel_degree, **kwargs)
+    inference_model.initialize()
+    return inference_model.ft_model

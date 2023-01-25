@@ -10,12 +10,8 @@
 # BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for
 # the specific language governing permissions and limitations under the License.
 # copy t5 source scripts to toolkit directory
-mkdir -p fastertransformer/examples/{t5,gptneox,gpt}
+mkdir -p fastertransformer/examples/t5
 echo "" > fastertransformer/examples/t5/__init__.py
-echo "" > fastertransformer/examples/gptneox/__init__.py
-echo "" > fastertransformer/examples/gpt/__init__.py
 echo "" > fastertransformer/examples/__init__.py
-cp ../examples/pytorch/t5/utils/{ft_encoder.py,ft_decoding.py,huggingface_t5_ckpt_convert.py} fastertransformer/examples/t5/
-cp ../examples/pytorch/gptneox/utils/huggingface_jp_gptneox_convert.py fastertransformer/examples/gptneox/
-cp ../examples/pytorch/gpt/utils/{gpt_token_encoder.py,gpt.py,parallel_gpt.py,comm.py,huggingface_gpt_convert.py,huggingface_opt_convert.py} fastertransformer/examples/gpt/
-cp ../examples/pytorch/gpt/utils/{huggingface_bloom_convert.py,bloom.py} fastertransformer/examples/gpt/
+cp ../examples/pytorch/t5/utils/ft_encoder.py fastertransformer/examples/t5/
+cp ../examples/pytorch/t5/utils/ft_decoding.py fastertransformer/examples/t5/
