@@ -27,7 +27,7 @@ class InferenceModel(object):
         self.pipeline_parallel_degree = pipeline_parallel_degree
         self.dtype = np.float32 if "dtype" not in kwargs else kwargs["dtype"]
         self.batch_size = 1 if "batch_size" not in kwargs else kwargs["batch_size"]
-        self.lib_path = "/usr/local/backends/fastertransformer/libth_t5.so" if "lib_path" not in kwargs else kwargs["lib_path"]
+        self.lib_path = "/usr/local/backends/fastertransformer/libth_transformer.so" if "lib_path" not in kwargs else kwargs["lib_path"]
         self.ft_model = None
 
     def initialize(self):
