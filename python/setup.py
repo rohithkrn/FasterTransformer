@@ -12,9 +12,14 @@
 # the specific language governing permissions and limitations under the License.
 
 import setuptools.command.build_py
+import subprocess
 from setuptools import setup, find_packages
 
 pkgs = find_packages()
+
+
+def copy_files():
+    subprocess.run(["./install_utils.sh"])
 
 
 def detect_version():
@@ -34,9 +39,10 @@ class BuildPy(setuptools.command.build_py.build_py):
 
 
 if __name__ == '__main__':
+    copy_files()
     version = detect_version()
 
-    requirements = ['psutil', 'packaging', 'wheel', 'torch']
+    requirements = ['psutil', 'packaging', 'wheel', 'torch', 'numpy']
 
     test_requirements = []
 
