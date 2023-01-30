@@ -12,25 +12,33 @@ import torch
 from .ftmodel import InferenceModel
 from .t5model import T5Model
 
+# TODO: support commented model
 SUPPORTED_MODEL_TYPES = {
     "t5": T5Model,
     "gpt2": None,
-    "gpt_neo": None,
-    "gptj": None,
+    # "gpt_neo": None,
+    # "gptj": None,
     "opt": None,
-    "gpt_neox": None,
+    # "gpt_neox": None,
     "bloom": None,
 }
 
 
-def init_inference(model: torch.nn.Module,
+def init_inference(model: torch.nn.Module or str,
                    tensor_parallel_degree: int,
                    pipeline_parallel_degree: int,
+                   model_type="",
                    **kwargs):
-    if model.config.model_type not in SUPPORTED_MODEL_TYPES:
+    if isinstance(model, str):
+        if model_type not in SUPPORTED_MODEL_TYPES.keys():
+            raise ValueError(f"{model_type} type not supported for model {model}")
+        inference_model = SUPPORTED_MODEL_TYPES[model_type] \
+            (model, tensor_parallel_degree, pipeline_parallel_degree, **kwargs)
+    elif model.config.model_type in SUPPORTED_MODEL_TYPES:
+        inference_model = SUPPORTED_MODEL_TYPES[model.config.model_type] \
+            (model, tensor_parallel_degree, pipeline_parallel_degree, **kwargs)
+    else:
         raise ValueError(f"{model.config.model_type} not supported! "
-                         f"Supported model arch: {SUPPORTED_MODEL_TYPES}")
-    inference_model = SUPPORTED_MODEL_TYPES[model.config.model_type] \
-        (model, tensor_parallel_degree, pipeline_parallel_degree, **kwargs)
+                         f"Supported model arch: {SUPPORTED_MODEL_TYPES.keys()}")
     inference_model.initialize()
     return inference_model
