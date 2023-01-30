@@ -11,6 +11,8 @@
 import math
 import os
 
+from transformers import T5ForConditionalGeneration
+
 from .examples.t5.ft_decoding import FTT5DecodingWeight, FTT5Decoding, FTT5
 from .examples.t5.ft_encoder import FTT5EncoderWeight, FTT5Encoder
 from .ftmodel import InferenceModel
@@ -28,6 +30,9 @@ class T5Model(InferenceModel):
                 rank = dist.get_rank()
         else:
             rank = 0
+
+        if isinstance(self.model, str):
+            self.model = T5ForConditionalGeneration.from_pretrained(self.model)
 
         # TODO: understand these
         encoder_config = self.model.encoder.config

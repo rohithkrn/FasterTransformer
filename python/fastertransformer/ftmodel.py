@@ -16,7 +16,7 @@ import logging
 class InferenceModel:
     DEFAULT_LIB_PATH = "/usr/local/backends/fastertransformer"
 
-    def __init__(self, model: Module, tensor_parallel_degree, pipeline_parallel_degree, dtype=np.float32,
+    def __init__(self, model: Module or str, tensor_parallel_degree, pipeline_parallel_degree, dtype=np.float32,
                  batch_size=1, **kwargs):
         logging.info("Initializing inference model with FasterTransformer")
         self.model = model
