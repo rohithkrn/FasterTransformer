@@ -9,13 +9,15 @@
 # BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for
 # the specific language governing permissions and limitations under the License.
 import torch
+from transformers import AutoConfig
 from .ftmodel import InferenceModel
 from .t5model import T5Model
+from .gptmodel import GPTModel
 
 # TODO: support commented model
 SUPPORTED_MODEL_TYPES = {
     "t5": T5Model,
-    "gpt2": None,
+    "gpt2": GPTModel,
     # "gpt_neo": None,
     # "gptj": None,
     "opt": None,
@@ -24,21 +26,15 @@ SUPPORTED_MODEL_TYPES = {
 }
 
 
-def init_inference(model: torch.nn.Module or str,
+def init_inference(model: str,
                    tensor_parallel_degree: int,
                    pipeline_parallel_degree: int,
-                   model_type="",
                    **kwargs):
-    if isinstance(model, str):
-        if model_type not in SUPPORTED_MODEL_TYPES.keys():
-            raise ValueError(f"{model_type} type not supported for model {model}")
-        inference_model = SUPPORTED_MODEL_TYPES[model_type] \
-            (model, tensor_parallel_degree, pipeline_parallel_degree, **kwargs)
-    elif model.config.model_type in SUPPORTED_MODEL_TYPES:
-        inference_model = SUPPORTED_MODEL_TYPES[model.config.model_type] \
-            (model, tensor_parallel_degree, pipeline_parallel_degree, **kwargs)
-    else:
-        raise ValueError(f"{model.config.model_type} not supported! "
+    model_config = AutoConfig.from_pretrained(model)
+    if model_config.model_type not in SUPPORTED_MODEL_TYPES.keys():
+        raise ValueError(f"{model_config.model_type} type not supported for model {model}"
                          f"Supported model arch: {SUPPORTED_MODEL_TYPES.keys()}")
+    inference_model = SUPPORTED_MODEL_TYPES[model_config.model_type] \
+        (model, tensor_parallel_degree, pipeline_parallel_degree, **kwargs)
     inference_model.initialize()
     return inference_model

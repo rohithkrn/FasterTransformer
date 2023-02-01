@@ -8,7 +8,6 @@
 # or in the "LICENSE.txt" file accompanying this file. This file is distributed on an "AS IS"
 # BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for
 # the specific language governing permissions and limitations under the License.
-from torch.nn.modules import Module
 import numpy as np
 import logging
 
@@ -16,7 +15,7 @@ import logging
 class InferenceModel:
     DEFAULT_LIB_PATH = "/usr/local/backends/fastertransformer"
 
-    def __init__(self, model: Module or str, tensor_parallel_degree, pipeline_parallel_degree, dtype=np.float32,
+    def __init__(self, model: str, tensor_parallel_degree, pipeline_parallel_degree, dtype=np.float32,
                  batch_size=1, **kwargs):
         logging.info("Initializing inference model with FasterTransformer")
         self.model = model
@@ -30,4 +29,7 @@ class InferenceModel:
         raise NotImplementedError("Method not implemented for InferenceModel")
 
     def generate(self):
+        raise NotImplementedError("Method not implemented for InferenceModel")
+
+    def create_ft_model_artifacts(self):
         raise NotImplementedError("Method not implemented for InferenceModel")

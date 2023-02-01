@@ -31,8 +31,7 @@ class T5Model(InferenceModel):
         else:
             rank = 0
 
-        if isinstance(self.model, str):
-            self.model = T5ForConditionalGeneration.from_pretrained(self.model)
+        self.model = T5ForConditionalGeneration.from_pretrained(self.model)
 
         # TODO: understand these
         encoder_config = self.model.encoder.config
