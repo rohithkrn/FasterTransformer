@@ -39,10 +39,8 @@ deploy:
   image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
   dependencies:
     - build
-  variables:
-    AWS_CREDS_TARGET_ROLE: arn:aws:iam::125045733377:role/RubikonFTGitlab
-    AWS_DEFAULT_REGION: us-east-1
   script:
     - cd python
-    - aws s3 cp dist/$WHEEL_NAME $S3_BUCKET/$WHEEL_NAME
+    - aws configure list
+    - aws s3 cp dist/$WHEEL_NAME $S3_BUCKET/$WHEEL_NAME --acl public-read
   environment: production
