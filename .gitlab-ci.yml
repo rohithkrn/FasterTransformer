@@ -1,0 +1,46 @@
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  WHEEL_NAME: fastertransformer-$CI_COMMIT_BRANCH+$CI_COMMIT_SHORT_SHA-py3-none-any.whl
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
+
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  image: python:latest
+  script:
+    - python --version
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
+    - cd python
+    - python setup.py bdist_wheel
+    - set -- dist/*.whl
+    - mv $1 dist/$WHEEL_NAME
+    - echo $WHEEL_NAME
+    - pip install dist/* # Ensure that we can install from whl
+  artifacts:
+    paths:
+      - python/dist/*.whl
+
+
+deploy:
+  stage: deploy
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+  dependencies:
+    - build
+  script:
+    - cd python
+    - aws configure list
+    - aws s3 cp dist/$WHEEL_NAME $S3_BUCKET/$WHEEL_NAME --acl public-read
+  environment: production
