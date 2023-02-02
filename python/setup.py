@@ -42,7 +42,7 @@ if __name__ == '__main__':
     copy_files()
     version = detect_version()
 
-    requirements = ['psutil', 'packaging', 'wheel', 'torch', 'numpy']
+    requirements = ['psutil', 'packaging', 'wheel', 'torch', 'numpy', 'transformers']
 
     test_requirements = []
 

@@ -11,6 +11,8 @@
 import numpy as np
 import logging
 
+from .examples.gpt import comm
+
 
 class InferenceModel:
     DEFAULT_LIB_PATH = "/usr/local/backends/fastertransformer"
@@ -24,6 +26,11 @@ class InferenceModel:
         self.dtype = dtype
         self.batch_size = batch_size
         self.lib_path = self.DEFAULT_LIB_PATH if "lib_path" not in kwargs else kwargs["lib_path"]
+        # Multi-GPU setup
+        comm.initialize_model_parallel(self.tensor_parallel_degree, self.pipeline_parallel_degree)
+        self.rank = comm.get_rank()
+        self.device = comm.get_device()
+        self.num_gpus = tensor_parallel_degree * pipeline_parallel_degree
 
     def initialize(self):
         raise NotImplementedError("Method not implemented for InferenceModel")

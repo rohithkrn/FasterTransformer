@@ -9,63 +9,63 @@
 # BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for
 # the specific language governing permissions and limitations under the License.
 import os
+import numpy as np
 import torch
 from transformers import AutoConfig
-
-from .gptmodel import GPTModel
 from .examples.gpt import parallel_gpt
-from .utils.common_utils import verify_and_convert
+from .ftmodel import InferenceModel
+from .utils.common_utils import execute_command
 import logging
 
 
-class OPTModel(GPTModel):
+class OPTModel(InferenceModel):
 
-    def create_ft_model_artifacts(self, checkpoint_path):
-        cmd = "CUDA_VISIBLE_DEVICES=-1 "
-        cmd += f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_opt_convert.py " \
-               f"-i {self.model} -o {checkpoint_path}/ -p {self.num_convert_process} " \
-               f"-i_g {self.num_gpus} -weight_data_type {self.weight_dtype}"
-        file_string = [os.path.join(checkpoint_path, f'{self.num_gpus}-gpu/verify'), self.verify_str]
-        verify_and_convert(cmd, file_string)
+    # TODO: optimize this
+    DEFAULT_SAVING_LOC = "/opt/djl/ft_model/opt"
+
+    def __init__(self, model: str, tensor_parallel_degree, pipeline_parallel_degree, dtype=np.float32,
+                 batch_size=1, **kwargs):
+        super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, batch_size, **kwargs)
+        self.gpt: parallel_gpt.ParallelGPT = None
+        self.model_config = AutoConfig.from_pretrained(self.model)
+
+    def create_ft_model_artifacts(self):
+        cmd = f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_opt_convert.py " \
+              f"-i {self.model} -o {self.DEFAULT_SAVING_LOC}/ -i_g {self.num_gpus}"
+        execute_command(cmd, self.rank)
 
     def initialize(self):
-        self.model_config = AutoConfig.from_pretrained(self.model)
-        self.end_id = vars(self.model_config)['eos_token_id']
         logging.info("Start model artifacts conversion...")
-        self.create_ft_model_artifacts(self.model_dir)
+        self.create_ft_model_artifacts()
         logging.info("load model...")
-        if self.dtype == "int8":
-            operate_dtype = "fp16"
-            load_int8 = True
-        else:
-            operate_dtype = self.dtype
-            load_int8 = False
-
-        self.load_gpt(os.path.join(self.model_dir, f"{self.num_gpus}-gpu"), self.tensor_parallel_degree,
-                      self.pipeline_parallel_degree, load_int8, operate_dtype, self.weight_dtype)
+        self.load_gpt(os.path.join(self.DEFAULT_SAVING_LOC, f"{self.num_gpus}-gpu"), self.tensor_parallel_degree,
+                      self.pipeline_parallel_degree, False, 'fp16', 'fp16')
 
     # TODO: support batch tokens
-    def generate(self, start_ids: torch.Tensor, start_lengths: torch.IntTensor, batch_size, beam_width=1,
-                 output_len=32, **kwargs):
-        default_args = dict(
-            beam_width=beam_width,
-            top_k=1,
-            top_p=0.0,
-            temperature=1,
-            repetition_penalty=1,
-            random_seed=0,
+    def generate(self, input_tokens: torch.IntTensor, output_length: int):
+        top_k = 1
+        top_p = 0.0
+        max_batch_size = 1
+        temperature = 1
+        repetition_penalty = 1
+        random_seed = 0
+        input_lengths = torch.tensor([len(input_tokens)], dtype=torch.int32, device=self.gpt.device)
+        infer_decode_args = dict(
+            beam_width=1,
+            top_k=top_k * torch.ones(max_batch_size, dtype=torch.int32),
+            top_p=top_p * torch.ones(max_batch_size, dtype=torch.float32),
+            temperature=temperature * torch.ones(max_batch_size, dtype=torch.float32),
+            repetition_penalty=repetition_penalty * torch.ones(max_batch_size, dtype=torch.float32),
+            random_seed=random_seed * torch.ones(max_batch_size, dtype=torch.int64)
         )
-        default_args.update(kwargs)
-        default_args["top_k"] *= torch.ones(batch_size, dtype=torch.int32)
-        default_args["top_p"] *= torch.ones(batch_size, dtype=torch.float32)
-        default_args["temperature"] *= torch.ones(batch_size, dtype=torch.float32)
-        default_args["repetition_penalty"] *= torch.ones(batch_size, dtype=torch.float32)
-        default_args["random_seed"] *= torch.ones(batch_size, dtype=torch.int64)
         with torch.no_grad():
-            output = self.gpt(start_ids, start_lengths, output_len, **default_args)
-        return output
+            output, ft_output_len = self.gpt(input_tokens, input_lengths,
+                                             output_length, **infer_decode_args)
+        tokens = output[0][0]
+        return tokens
 
-    def load_gpt(self, model_path: str, tp: int, pp: int, use_int8: bool, inf_dtype, weight_dtype):
+    def load_gpt(self, model_path: str, tp: int, pp: int, use_int8: bool, inf_dtype,
+                 weight_dtype):
         hf_config = vars(self.model_config)
         layernorm_eps = 1e-5
         layernorm_type = 'pre_layernorm' if hf_config['do_layer_norm_before'] else 'post_layernorm'
