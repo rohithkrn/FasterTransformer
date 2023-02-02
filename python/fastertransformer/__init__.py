@@ -11,6 +11,7 @@
 import torch
 from transformers import AutoConfig
 from .ftmodel import InferenceModel
+from .optmodel import OPTModel
 from .t5model import T5Model
 from .gptmodel import GPTModel
 
@@ -20,7 +21,7 @@ SUPPORTED_MODEL_TYPES = {
     "gpt2": GPTModel,
     # "gpt_neo": None,
     # "gptj": None,
-    "opt": None,
+    "opt": OPTModel,
     # "gpt_neox": None,
     "bloom": None,
 }
@@ -34,7 +35,7 @@ def init_inference(model: str,
     if model_config.model_type not in SUPPORTED_MODEL_TYPES.keys():
         raise ValueError(f"{model_config.model_type} type not supported for model {model}"
                          f"Supported model arch: {SUPPORTED_MODEL_TYPES.keys()}")
-    inference_model = SUPPORTED_MODEL_TYPES[model_config.model_type] \
-        (model, tensor_parallel_degree, pipeline_parallel_degree, **kwargs)
+    inference_model = SUPPORTED_MODEL_TYPES[model_config.model_type](
+        model, tensor_parallel_degree, pipeline_parallel_degree, **kwargs)
     inference_model.initialize()
     return inference_model
