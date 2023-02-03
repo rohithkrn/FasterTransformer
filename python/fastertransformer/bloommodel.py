@@ -16,17 +16,17 @@ from transformers import AutoConfig, AutoTokenizer
 
 from .gptmodel import GPTModel
 from .examples.gpt import bloom
-from .utils.common_utils import verify_and_convert
+from .utils.common_utils import execute_command
 
 
 class BLOOMModel(GPTModel):
+    # TODO: optimize this
+    DEFAULT_SAVE_DIR = "/opt/djl/ft_model/bloom"
 
-    def create_ft_model_artifacts(self, checkpoint_path):
+    def create_ft_model_artifacts(self):
         cmd = f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_bloom_convert.py " \
-              f"-i {self.model} -o {checkpoint_path}/ -p {self.num_convert_process} " \
-              f"-tp {self.num_gpus} -dt {self.weight_dtype}"
-        file_string = [os.path.join(checkpoint_path, f'{self.num_gpus}-gpu/verify'), self.verify_str]
-        verify_and_convert(cmd, file_string)
+              f"-i {self.model} -o {self.DEFAULT_SAVE_DIR}/ -tp {self.num_gpus} -dt {self.dtype}"
+        execute_command(cmd, self.rank)
 
     def initialize(self):
         padding_side = 'right'  # FT exclusive
@@ -34,26 +34,19 @@ class BLOOMModel(GPTModel):
         self.model_config = AutoConfig.from_pretrained(self.model)
         self.end_id = vars(self.model_config)['eos_token_id']
         logging.info("Start model artifacts conversion...")
-        self.create_ft_model_artifacts(self.model_dir)
+        self.create_ft_model_artifacts()
         logging.info("load model...")
         self.gpt = self.get_model()
 
     def get_model(self):
-        if self.dtype == "int8":
-            operate_dtype = "fp16"
-            load_int8 = True
-        else:
-            operate_dtype = self.dtype
-            load_int8 = False
-
-        ckpt_path = os.path.join(self.model_dir, f'{self.num_gpus}-gpu')
+        ckpt_path = os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu')
         config_path = os.path.join(ckpt_path, 'config.ini')
         if os.path.isfile(config_path):
             # Read model params from config.
             cfg = configparser.ConfigParser()
             cfg.read(config_path)
             model_name = 'gpt'
-            inference_data_type = operate_dtype
+            inference_data_type = self.dtype
             model_args = dict(
                 head_num=cfg.getint(model_name, 'head_num'),
                 size_per_head=cfg.getint(model_name, "size_per_head"),
@@ -72,7 +65,7 @@ class BLOOMModel(GPTModel):
         model_args.update(dict(
             lib_path=os.path.join(self.lib_path, "libth_transformer.so"),
             pipeline_para_size=self.pipeline_parallel_degree,
-            int8_mode=1 if load_int8 else 0
+            int8_mode=0
         ))
 
         print('[FT][INFO] Load BLOOM model')
