@@ -11,26 +11,17 @@
 import math
 import os
 import torch
-from torch.nn.utils.rnn import pad_sequence
-from transformers import AutoConfig, AutoTokenizer
+from transformers import AutoConfig
+
+from . import GPTModel
 from .examples.gpt import parallel_gpt
-from .ftmodel import InferenceModel
 from .utils.common_utils import execute_command
 import logging
 
 
-class OPTModel(InferenceModel):
+class OPTModel(GPTModel):
     # TODO: optimize this
     DEFAULT_SAVE_DIR = "/opt/djl/ft_model/opt"
-
-    def __init__(self, model: str,
-                 tensor_parallel_degree: int,
-                 pipeline_parallel_degree: int, dtype:str, **kwargs):
-        super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, **kwargs)
-        self.gpt: parallel_gpt.ParallelGPT = None
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model)
-        self.model_config = AutoConfig.from_pretrained(self.model)
-        self.end_id = vars(self.model_config)['eos_token_id']
 
     def create_ft_model_artifacts(self):
         cmd = f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_opt_convert.py " \
@@ -38,6 +29,8 @@ class OPTModel(InferenceModel):
         execute_command(cmd, self.rank)
 
     def initialize(self):
+        self.model_config = AutoConfig.from_pretrained(self.model)
+        self.end_id = vars(self.model_config)['eos_token_id']
         logging.info("Start model artifacts conversion...")
         self.create_ft_model_artifacts()
         logging.info("load model...")
@@ -64,32 +57,6 @@ class OPTModel(InferenceModel):
         with torch.no_grad():
             output = self.gpt(start_ids, start_lengths, output_len, **default_args)
         return output
-
-    def pipeline_generate(self, inputs, batch_size=1, output_len=32, beam_width=1,
-                          skip_end_tokens=True, detokenize=True, **kwargs):
-        total_iter = math.ceil(len(inputs) / batch_size)
-        result = []
-        for it in range(total_iter):
-            input_batch = inputs[it * batch_size: batch_size * (it + 1)]
-            start_ids = [torch.tensor(self.tokenizer.encode(input), dtype=torch.int32, device=self.device) for input in
-                         input_batch]
-            start_lengths = [len(ids) for ids in start_ids]
-            start_ids = pad_sequence(start_ids, batch_first=True, padding_value=self.end_id)
-            start_lengths = torch.IntTensor(start_lengths)
-            tokens_batch = self.generate(start_ids, start_lengths, batch_size, beam_width,  output_len, **kwargs)
-
-            outputs = []
-            tokens_batch = tokens_batch.cpu().numpy()
-            for i, (input, tokens) in enumerate(zip(inputs, tokens_batch)):
-                for beam_id in range(beam_width):
-                    token = tokens[beam_id][start_lengths[i]:]  # exclude context input from the output
-                    if skip_end_tokens:
-                        token = token[token != self.end_id]
-                    output = self.tokenizer.decode(token) if detokenize else ' '.join(str(t) for t in token.tolist())
-                    outputs.append(output)
-
-            result.append(outputs)
-        return result
 
     def load_gpt(self, model_path: str, tp: int, pp: int, use_int8: bool, inf_dtype, weight_dtype):
         hf_config = vars(self.model_config)
