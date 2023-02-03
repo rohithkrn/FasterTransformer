@@ -16,20 +16,11 @@ from transformers import T5ForConditionalGeneration
 from .examples.t5.ft_decoding import FTT5DecodingWeight, FTT5Decoding, FTT5
 from .examples.t5.ft_encoder import FTT5EncoderWeight, FTT5Encoder
 from .ftmodel import InferenceModel
-import torch.distributed as dist
 
 
 class T5Model(InferenceModel):
 
     def initialize(self):
-        if dist.is_mpi_available():
-            try:
-                dist.init_process_group(backend='mpi')
-                rank = dist.get_rank()
-            except:
-                rank = dist.get_rank()
-        else:
-            rank = 0
 
         self.model = T5ForConditionalGeneration.from_pretrained(self.model)
 

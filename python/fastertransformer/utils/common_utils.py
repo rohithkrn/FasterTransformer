@@ -16,6 +16,7 @@ import torch.distributed as dist
 def execute_command(command: str, rank):
     if rank == 0:
         logging.debug(f"executing command {command}")
+        # FIXME: Process will hang if convert failed
         subprocess.check_call(command, shell=True)
     if dist.is_initialized():
         dist.barrier()

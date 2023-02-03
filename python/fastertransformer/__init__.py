@@ -30,12 +30,13 @@ SUPPORTED_MODEL_TYPES = {
 def init_inference(model: str,
                    tensor_parallel_degree: int,
                    pipeline_parallel_degree: int,
+                   dtype: str = 'fp32',
                    **kwargs):
     model_config = AutoConfig.from_pretrained(model)
     if model_config.model_type not in SUPPORTED_MODEL_TYPES.keys():
         raise ValueError(f"{model_config.model_type} type not supported for model {model}"
                          f"Supported model arch: {SUPPORTED_MODEL_TYPES.keys()}")
     inference_model = SUPPORTED_MODEL_TYPES[model_config.model_type](
-        model, tensor_parallel_degree, pipeline_parallel_degree, **kwargs)
+        model, tensor_parallel_degree, pipeline_parallel_degree, dtype, **kwargs)
     inference_model.initialize()
     return inference_model
