@@ -19,7 +19,6 @@ from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer
 
 from .ftmodel import InferenceModel
-from .examples.gpt import parallel_gpt
 from .examples.gpt.parallel_gpt import ParallelGPT
 from .utils.common_utils import execute_command
 
@@ -32,7 +31,7 @@ class GPTModel(InferenceModel):
                  pipeline_parallel_degree: int, dtype:str, **kwargs):
         super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, **kwargs)
         self.tokenizer = AutoTokenizer.from_pretrained(self.model)
-        self.gpt: parallel_gpt.ParallelGPT = None
+        self.gpt = None
 
     def initialize(self):
         logging.info("Converting hf model to ft model...")

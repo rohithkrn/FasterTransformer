@@ -8,8 +8,9 @@
 # or in the "LICENSE.txt" file accompanying this file. This file is distributed on an "AS IS"
 # BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for
 # the specific language governing permissions and limitations under the License.
-import torch
 from transformers import AutoConfig
+
+from .bloommodel import BLOOMModel
 from .ftmodel import InferenceModel
 from .optmodel import OPTModel
 from .t5model import T5Model
@@ -23,7 +24,7 @@ SUPPORTED_MODEL_TYPES = {
     # "gptj": None,
     "opt": OPTModel,
     # "gpt_neox": None,
-    "bloom": None,
+    "bloom": BLOOMModel,
 }
 
 
