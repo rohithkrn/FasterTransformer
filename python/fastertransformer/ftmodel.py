@@ -34,5 +34,8 @@ class InferenceModel:
     def generate(self, **kwargs):
         raise NotImplementedError("Method not implemented for InferenceModel")
 
+    def pipeline_generate(self, **kwargs):
+        raise NotImplementedError("Method not implemented for InferenceModel")
+
     def create_ft_model_artifacts(self):
         raise NotImplementedError("Method not implemented for InferenceModel")
