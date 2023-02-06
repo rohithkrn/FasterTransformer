@@ -15,8 +15,6 @@ import setuptools.command.build_py
 import subprocess
 from setuptools import setup, find_packages
 
-pkgs = find_packages()
-
 
 def copy_files():
     subprocess.run(["./install_utils.sh"])
@@ -40,6 +38,7 @@ class BuildPy(setuptools.command.build_py.build_py):
 
 if __name__ == '__main__':
     copy_files()
+    pkgs = find_packages()
     version = detect_version()
 
     requirements = ['psutil', 'packaging', 'wheel', 'torch', 'numpy', 'transformers']
