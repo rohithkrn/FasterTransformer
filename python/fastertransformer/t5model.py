@@ -17,12 +17,13 @@ from .examples.t5.ft_decoding import FTT5DecodingWeight, FTT5Decoding, FTT5
 from .examples.t5.ft_encoder import FTT5EncoderWeight, FTT5Encoder
 from .ftmodel import InferenceModel
 
+
 class T5Model(InferenceModel):
     STR_TO_NUMPY_TYPE_MAP = {"fp32": np.float32, "fp16": np.float16}
 
     def __init__(self, model: str,
                  tensor_parallel_degree: int,
-                 pipeline_parallel_degree: int, dtype:str, **kwargs):
+                 pipeline_parallel_degree: int, dtype: str, **kwargs):
         super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, **kwargs)
         self.tokenizer = T5Tokenizer.from_pretrained(self.model)
         self.t5: FTT5 = None
@@ -145,7 +146,8 @@ class T5Model(InferenceModel):
         for batch_token, batch_seq_len in output_tokens:
             decoded_batch_token = []
             for j in range(len(batch_token)):
-                decoded_batch_token.append(self.tokenizer.decode(batch_token[j][0][:batch_seq_len[j][0]], skip_special_tokens=True))
+                decoded_batch_token.append(self.tokenizer.decode(batch_token[j][0][:batch_seq_len[j][0]],
+                                                                 skip_special_tokens=True))
             result.append(decoded_batch_token)
 
         return result
