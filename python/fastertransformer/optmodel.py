@@ -23,8 +23,9 @@ class OPTModel(GPTModel):
     DEFAULT_SAVE_DIR = "/opt/djl/ft_model/opt"
 
     def create_ft_model_artifacts(self):
-        cmd = f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_opt_convert.py " \
-              f"-i {self.model} -o {self.DEFAULT_SAVE_DIR}/ -i_g {self.num_gpus} -weight_data_type {self.dtype}"
+        cmd = "CUDA_VISIBLE_DEVICES=-1 "
+        cmd += f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_opt_convert.py " \
+               f"-i {self.model} -o {self.DEFAULT_SAVE_DIR}/ -i_g {self.num_gpus} -weight_data_type {self.dtype}"
         execute_command(cmd, self.rank)
 
     def initialize(self):
