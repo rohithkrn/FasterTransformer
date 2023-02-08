@@ -28,6 +28,7 @@ class T5Model(InferenceModel):
         self.tokenizer = T5Tokenizer.from_pretrained(self.model)
         self.t5: FTT5 = None
         self.batch_size = kwargs.get("batch_size", 1)
+        self.use_gated_activation = kwargs.get("use_gated_activation", False)
 
     def initialize(self):
 
@@ -50,7 +51,7 @@ class T5Model(InferenceModel):
             self.tensor_parallel_degree,
             self.pipeline_parallel_degree,
             t5_with_bias=False,
-            use_gated_activation=False,
+            use_gated_activation=self.use_gated_activation,
             t5_with_moe=False,
             position_embedding_type=0,
             weight_data_type=self.STR_TO_NUMPY_TYPE_MAP[self.dtype],
@@ -61,7 +62,7 @@ class T5Model(InferenceModel):
             self.tensor_parallel_degree,
             self.pipeline_parallel_degree,
             t5_with_bias=False,
-            use_gated_activation=False,
+            use_gated_activation=self.use_gated_activation,
             t5_with_moe=False,
             position_embedding_type=0,
             weight_data_type=self.STR_TO_NUMPY_TYPE_MAP[self.dtype],
@@ -71,11 +72,9 @@ class T5Model(InferenceModel):
         ft_decoding_weight.load_from_model(hf_model)
 
         if self.dtype == 'fp16':
-            hf_model = hf_model.half()
             ft_encoder_weight.to_half()
             ft_decoding_weight.to_half()
         elif self.dtype == 'bf16':
-            hf_model = hf_model  # bfloat inference not supported yet
             ft_encoder_weight.to_bfloat16()
             ft_decoding_weight.to_bfloat16()
 
