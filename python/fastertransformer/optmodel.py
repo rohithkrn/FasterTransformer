@@ -14,19 +14,18 @@ from transformers import AutoConfig
 
 from .gptmodel import GPTModel
 from .examples.gpt import parallel_gpt
-from .utils.common_utils import execute_command
+from .utils.common_utils import verify_and_convert
 import logging
 
 
 class OPTModel(GPTModel):
-    # TODO: optimize this
-    DEFAULT_SAVE_DIR = "/opt/djl/ft_model/opt"
 
     def create_ft_model_artifacts(self):
         cmd = "CUDA_VISIBLE_DEVICES=-1 "
         cmd += f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_opt_convert.py " \
                f"-i {self.model} -o {self.DEFAULT_SAVE_DIR}/ -i_g {self.num_gpus} -weight_data_type {self.dtype}"
-        execute_command(cmd, self.rank)
+        file_string = [os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu/verify'), self.verify_str]
+        verify_and_convert(cmd, self.rank, file_string)
 
     def initialize(self):
         self.model_config = AutoConfig.from_pretrained(self.model)

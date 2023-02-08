@@ -9,11 +9,15 @@
 # BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for
 # the specific language governing permissions and limitations under the License.
 import logging
+import os
+import tempfile
+
 from .examples.gpt import comm
 
 
 class InferenceModel:
     DEFAULT_LIB_PATH = "/usr/local/backends/fastertransformer"
+    DEFAULT_SAVE_DIR = os.path.join(tempfile.gettempdir(), "ft_model")
 
     def __init__(self, model: str, tensor_parallel_degree, pipeline_parallel_degree, dtype="fp32", **kwargs):
         logging.info("Initializing inference model with FasterTransformer")
@@ -22,6 +26,7 @@ class InferenceModel:
         self.pipeline_parallel_degree = pipeline_parallel_degree
         self.dtype = dtype
         self.lib_path = self.DEFAULT_LIB_PATH if "lib_path" not in kwargs else kwargs["lib_path"]
+        self.verify_str = f"{self.model}-{self.tensor_parallel_degree}-{self.pipeline_parallel_degree}"
         # Multi-GPU setup
         comm.initialize_model_parallel(self.tensor_parallel_degree, self.pipeline_parallel_degree)
         self.rank = comm.get_rank()

@@ -13,18 +13,16 @@ import configparser
 import logging
 import os
 import math
-
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer
 
 from .ftmodel import InferenceModel
 from .examples.gpt.parallel_gpt import ParallelGPT
-from .utils.common_utils import execute_command
+from .utils.common_utils import verify_and_convert
 
 
 class GPTModel(InferenceModel):
-    DEFAULT_SAVE_DIR = os.path.join(os.getcwd() + "/ft_gpt_model/")
 
     def __init__(self, model: str,
                  tensor_parallel_degree: int,
@@ -36,6 +34,7 @@ class GPTModel(InferenceModel):
     def initialize(self):
         logging.info("Converting hf model to ft model...")
         self.create_ft_model_artifacts()
+        logging.info("Converting completed, start loading...")
         ckpt_config = configparser.ConfigParser()
         ckpt_config_path = os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu', 'config.ini')
         if os.path.isfile(ckpt_config_path):
@@ -123,6 +122,8 @@ class GPTModel(InferenceModel):
         return result
 
     def create_ft_model_artifacts(self):
-        cmd = f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_gpt_convert.py " \
-              f"-i {self.model} -o {self.DEFAULT_SAVE_DIR} -i_g {self.num_gpus} -weight_data_type {self.dtype}"
-        execute_command(cmd, self.rank)
+        cmd = "CUDA_VISIBLE_DEVICES=-1 "
+        cmd += f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_gpt_convert.py " \
+              f"-i {self.model} -o {self.DEFAULT_SAVE_DIR}/ -i_g {self.num_gpus} -weight_data_type {self.dtype}"
+        file_string = [os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu/verify'), self.verify_str]
+        verify_and_convert(cmd, self.rank, file_string)
