@@ -41,7 +41,7 @@ if __name__ == '__main__':
     pkgs = find_packages()
     version = detect_version()
 
-    requirements = ['psutil', 'packaging', 'wheel', 'torch', 'numpy', 'transformers', 'SentencePiece']
+    requirements = ['psutil', 'packaging', 'wheel', 'torch', 'numpy', 'transformers', 'sentencepiece']
 
     test_requirements = []
 
