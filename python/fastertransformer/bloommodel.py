@@ -23,7 +23,8 @@ class BLOOMModel(GPTModel):
 
     def create_ft_model_artifacts(self):
         cmd = f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_bloom_convert.py " \
-              f"-i {self.model} -o {self.DEFAULT_SAVE_DIR}/ -tp {self.num_gpus} -dt {self.dtype}"
+              f"-i {self.model} -o {self.DEFAULT_SAVE_DIR}/ -p {self.num_convert_process} " \
+              f"-tp {self.num_gpus} -dt {self.dtype}"
         file_string = [os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu/verify'), self.verify_str]
         verify_and_convert(cmd, self.rank, file_string)
 

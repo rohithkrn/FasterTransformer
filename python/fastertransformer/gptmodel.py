@@ -26,7 +26,7 @@ class GPTModel(InferenceModel):
 
     def __init__(self, model: str,
                  tensor_parallel_degree: int,
-                 pipeline_parallel_degree: int, dtype:str, **kwargs):
+                 pipeline_parallel_degree: int, dtype: str, **kwargs):
         super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, **kwargs)
         self.tokenizer = AutoTokenizer.from_pretrained(self.model)
         self.gpt = None
@@ -124,6 +124,7 @@ class GPTModel(InferenceModel):
     def create_ft_model_artifacts(self):
         cmd = "CUDA_VISIBLE_DEVICES=-1 "
         cmd += f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_gpt_convert.py " \
-              f"-i {self.model} -o {self.DEFAULT_SAVE_DIR}/ -i_g {self.num_gpus} -weight_data_type {self.dtype}"
+               f"-i {self.model} -o {self.DEFAULT_SAVE_DIR}/ -p {self.num_convert_process} " \
+               f"-i_g {self.num_gpus} -weight_data_type {self.dtype}"
         file_string = [os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu/verify'), self.verify_str]
         verify_and_convert(cmd, self.rank, file_string)
