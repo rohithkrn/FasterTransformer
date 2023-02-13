@@ -39,6 +39,13 @@ class BLOOMModel(GPTModel):
         self.gpt = self.get_model()
 
     def get_model(self):
+        if self.dtype == "int8":
+            operate_dtype = "fp16"
+            load_int8 = True
+        else:
+            operate_dtype = self.dtype
+            load_int8 = False
+
         ckpt_path = os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu')
         config_path = os.path.join(ckpt_path, 'config.ini')
         if os.path.isfile(config_path):
@@ -46,7 +53,7 @@ class BLOOMModel(GPTModel):
             cfg = configparser.ConfigParser()
             cfg.read(config_path)
             model_name = 'gpt'
-            inference_data_type = self.dtype
+            inference_data_type = operate_dtype
             model_args = dict(
                 head_num=cfg.getint(model_name, 'head_num'),
                 size_per_head=cfg.getint(model_name, "size_per_head"),
@@ -65,7 +72,7 @@ class BLOOMModel(GPTModel):
         model_args.update(dict(
             lib_path=os.path.join(self.lib_path, "libth_transformer.so"),
             pipeline_para_size=self.pipeline_parallel_degree,
-            int8_mode=0
+            int8_mode=1 if load_int8 else 0
         ))
 
         print('[FT][INFO] Load BLOOM model')

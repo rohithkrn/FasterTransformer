@@ -34,8 +34,15 @@ class OPTModel(GPTModel):
         logging.info("Start model artifacts conversion...")
         self.create_ft_model_artifacts()
         logging.info("load model...")
+        if self.dtype == "int8":
+            operate_dtype = "fp16"
+            load_int8 = True
+        else:
+            operate_dtype = self.dtype
+            load_int8 = False
+
         self.load_gpt(os.path.join(self.DEFAULT_SAVE_DIR, f"{self.num_gpus}-gpu"), self.tensor_parallel_degree,
-                      self.pipeline_parallel_degree, False, self.dtype, self.dtype)
+                      self.pipeline_parallel_degree, load_int8, operate_dtype, self.weight_dtype)
 
     # TODO: support batch tokens
     def generate(self, start_ids: torch.Tensor, start_lengths: torch.IntTensor, batch_size, beam_width=1,

@@ -30,6 +30,8 @@ class T5Model(InferenceModel):
         self.tokenizer = T5Tokenizer.from_pretrained(self.model)
         self.t5: FTT5 = None
         self.batch_size = kwargs.get("batch_size", 1)
+        if self.dtype == "int8":
+            raise NotImplementedError("T5 model does not support int8 mode!")
 
     def create_ft_model_artifacts(self):
         cmd = "CUDA_VISIBLE_DEVICES=-1 "

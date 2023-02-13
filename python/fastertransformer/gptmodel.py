@@ -47,19 +47,24 @@ class GPTModel(InferenceModel):
         vocab_size = ckpt_config.getint('gpt', 'vocab_size')
         max_seq_len = 1024
         shared_contexts_ratio = 1
-        inference_data_type = self.dtype
-        weights_data_type = self.dtype
-        int8_mode = 0  # add 1 case
+        weights_data_type = self.weight_dtype
         gpt_with_moe = False
         expert_num = 0
         moe_layer_index = []
         moe_k = 0
 
+        if self.dtype == "int8":
+            operate_dtype = "fp16"
+            load_int8 = True
+        else:
+            operate_dtype = self.dtype
+            load_int8 = False
+
         target_lib = os.path.join(self.lib_path, "libth_transformer.so")
         self.gpt = ParallelGPT(head_num, size_per_head, vocab_size, self.start_id, self.end_id,
                                layer_num, max_seq_len, self.tensor_parallel_degree, self.pipeline_parallel_degree,
-                               lib_path=target_lib, inference_data_type=inference_data_type,
-                               int8_mode=int8_mode, weights_data_type=weights_data_type,
+                               lib_path=target_lib, inference_data_type=operate_dtype,
+                               int8_mode=1 if load_int8 else 0, weights_data_type=weights_data_type,
                                shared_contexts_ratio=shared_contexts_ratio,
                                gpt_with_moe=gpt_with_moe,
                                expert_num=expert_num,
