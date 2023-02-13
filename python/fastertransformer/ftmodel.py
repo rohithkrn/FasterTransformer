@@ -36,9 +36,9 @@ class InferenceModel:
 
     def set_data_type(self, dtype):
         self.dtype = dtype
-        if dtype == "fp16" or dtype == "bf16":
+        if dtype == "fp16" or dtype == "int8":
             self.weight_dtype = "fp16"
-        elif dtype == "fp32":
+        elif dtype == "fp32" or dtype == "bf16":
             self.weight_dtype = "fp32"
         else:
             raise NotImplementedError(f"Not implemented for {dtype}!")
