@@ -24,15 +24,24 @@ class InferenceModel:
         self.model = model
         self.tensor_parallel_degree = tensor_parallel_degree
         self.pipeline_parallel_degree = pipeline_parallel_degree
-        self.dtype = dtype
+        self.set_data_type(dtype)
         self.lib_path = self.DEFAULT_LIB_PATH if "lib_path" not in kwargs else kwargs["lib_path"]
         self.verify_str = f"{self.model}-{self.tensor_parallel_degree}-{self.pipeline_parallel_degree}"
-        self.num_convert_process = 8  # 8 cpu processes to convert
+        self.num_convert_process = 8 if "num_convert_process" not in kwargs else kwargs["num_convert_process"]
         # Multi-GPU setup
         comm.initialize_model_parallel(self.tensor_parallel_degree, self.pipeline_parallel_degree)
         self.rank = comm.get_rank()
         self.device = comm.get_device()
         self.num_gpus = tensor_parallel_degree * pipeline_parallel_degree
+
+    def set_data_type(self, dtype):
+        self.dtype = dtype
+        if dtype == "fp16" or dtype == "bf16":
+            self.weight_dtype = "fp16"
+        elif dtype == "fp32":
+            self.weight_dtype = "fp32"
+        else:
+            raise NotImplementedError(f"Not implemented for {dtype}!")
 
     def initialize(self):
         raise NotImplementedError("Method not implemented for InferenceModel")
