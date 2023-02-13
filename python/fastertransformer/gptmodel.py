@@ -125,6 +125,6 @@ class GPTModel(InferenceModel):
         cmd = "CUDA_VISIBLE_DEVICES=-1 "
         cmd += f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_gpt_convert.py " \
                f"-i {self.model} -o {self.DEFAULT_SAVE_DIR}/ -p {self.num_convert_process} " \
-               f"-i_g {self.num_gpus} -weight_data_type {self.dtype}"
+               f"-i_g {self.num_gpus} -weight_data_type {self.weight_dtype}"
         file_string = [os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu/verify'), self.verify_str]
         verify_and_convert(cmd, self.rank, file_string)
