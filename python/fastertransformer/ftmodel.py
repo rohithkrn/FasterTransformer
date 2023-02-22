@@ -26,7 +26,7 @@ class InferenceModel:
         self.pipeline_parallel_degree = pipeline_parallel_degree
         self.set_data_type(dtype)
         self.lib_path = self.DEFAULT_LIB_PATH if "lib_path" not in kwargs else kwargs["lib_path"]
-        self.verify_str = f"{self.model}-{self.tensor_parallel_degree}-{self.pipeline_parallel_degree}"
+        self.verify_str = f"{self.model}-{self.weight_dtype}-{self.tensor_parallel_degree}-{self.pipeline_parallel_degree}"
         self.num_convert_process = 8 if "num_convert_process" not in kwargs else kwargs["num_convert_process"]
         # Multi-GPU setup
         comm.initialize_model_parallel(self.tensor_parallel_degree, self.pipeline_parallel_degree)
