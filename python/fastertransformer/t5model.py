@@ -29,7 +29,6 @@ class T5Model(InferenceModel):
         super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, **kwargs)
         self.tokenizer = T5Tokenizer.from_pretrained(self.model)
         self.t5: FTT5 = None
-        self.batch_size = kwargs.get("batch_size", 1)
         if self.dtype == "int8":
             raise NotImplementedError("T5 model does not support int8 mode!")
 
@@ -126,7 +125,7 @@ class T5Model(InferenceModel):
 
         target_lib = os.path.join(self.lib_path, "libth_transformer.so")
         q_scaling = 1.0 / (math.sqrt(encoder_config.d_kv))
-        remove_padding = True if self.batch_size > 32 else False
+        remove_padding = True
         ft_encoder = FTT5Encoder(ft_encoder_weight.w, target_lib, encoder_config.num_heads,
                                  encoder_config.d_kv, encoder_config.d_ff,
                                  encoder_config.d_model, remove_padding, encoder_config.num_layers,
@@ -180,20 +179,10 @@ class T5Model(InferenceModel):
         return result
 
     def pipeline_generate(self, inputs, **kwargs):
-        total_iter = math.ceil(len(inputs) / self.batch_size)
-        result = []
-        output_tokens = []
-        for it in range(total_iter):
-            input_batch = inputs[it * self.batch_size: self.batch_size * (it + 1)]
-            input_tokens = self.tokenizer(input_batch, return_tensors='pt', padding=True)
-            ft_decoding_outputs, ft_decoding_seq_lens = self.generate(input_tokens)
-            output_tokens.append((ft_decoding_outputs, ft_decoding_seq_lens))
-
-        for batch_token, batch_seq_len in output_tokens:
-            decoded_batch_token = []
-            for j in range(len(batch_token)):
-                decoded_batch_token.append(self.tokenizer.decode(batch_token[j][0][:batch_seq_len[j][0]],
-                                                                 skip_special_tokens=True))
-            result.append(decoded_batch_token)
-
-        return result
+        input_tokens = self.tokenizer.batch_encode_plus(inputs, return_tensors="pt", padding=True)
+        batch_token, batch_seq_len = self.generate(input_tokens)
+        decoded_batch_token = []
+        for j in range(len(batch_token)):
+            decoded_batch_token.append(self.tokenizer.decode(batch_token[j][0][:batch_seq_len[j][0]],
+                                                             skip_special_tokens=True))
+        return decoded_batch_token
