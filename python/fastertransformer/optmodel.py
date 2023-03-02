@@ -20,19 +20,19 @@ import logging
 
 class OPTModel(GPTModel):
 
-    def create_ft_model_artifacts(self):
+    def create_ft_model_artifacts(self, checkpoint_path):
         cmd = "CUDA_VISIBLE_DEVICES=-1 "
         cmd += f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_opt_convert.py " \
-               f"-i {self.model} -o {self.DEFAULT_SAVE_DIR}/ -p {self.num_convert_process} " \
+               f"-i {self.model} -o {checkpoint_path}/ -p {self.num_convert_process} " \
                f"-i_g {self.num_gpus} -weight_data_type {self.weight_dtype}"
-        file_string = [os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu/verify'), self.verify_str]
-        verify_and_convert(cmd, self.rank, file_string)
+        file_string = [os.path.join(checkpoint_path, f'{self.num_gpus}-gpu/verify'), self.verify_str]
+        verify_and_convert(cmd, file_string)
 
     def initialize(self):
         self.model_config = AutoConfig.from_pretrained(self.model)
         self.end_id = vars(self.model_config)['eos_token_id']
         logging.info("Start model artifacts conversion...")
-        self.create_ft_model_artifacts()
+        self.create_ft_model_artifacts(self.model_dir)
         logging.info("load model...")
         if self.dtype == "int8":
             operate_dtype = "fp16"
@@ -41,7 +41,7 @@ class OPTModel(GPTModel):
             operate_dtype = self.dtype
             load_int8 = False
 
-        self.load_gpt(os.path.join(self.DEFAULT_SAVE_DIR, f"{self.num_gpus}-gpu"), self.tensor_parallel_degree,
+        self.load_gpt(os.path.join(self.model_dir, f"{self.num_gpus}-gpu"), self.tensor_parallel_degree,
                       self.pipeline_parallel_degree, load_int8, operate_dtype, self.weight_dtype)
 
     # TODO: support batch tokens
