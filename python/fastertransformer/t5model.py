@@ -25,31 +25,34 @@ class T5Model(InferenceModel):
 
     def __init__(self, model: str,
                  tensor_parallel_degree: int,
-                 pipeline_parallel_degree: int, dtype: str, **kwargs):
-        super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, **kwargs)
+                 pipeline_parallel_degree: int,
+                 dtype: str,
+                 is_mpi_mode: bool = True,
+                 **kwargs):
+        super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, is_mpi_mode, **kwargs)
         self.tokenizer = T5Tokenizer.from_pretrained(self.model)
         self.t5: FTT5 = None
         if self.dtype == "int8":
             raise NotImplementedError("T5 model does not support int8 mode!")
 
-    def create_ft_model_artifacts(self):
+    def create_ft_model_artifacts(self, checkpoint_path):
         cmd = "CUDA_VISIBLE_DEVICES=-1 "
         cmd += f"python {os.path.dirname(os.path.realpath(__file__))}/examples/t5/huggingface_t5_ckpt_convert.py " \
-               f"-i {self.model} -o {self.DEFAULT_SAVE_DIR}/ -i_g {self.num_gpus} -p {self.num_convert_process} " \
+               f"-i {self.model} -o {checkpoint_path}/ -i_g {self.num_gpus} -p {self.num_convert_process} " \
                f"-weight_data_type {self.weight_dtype}"
-        file_string = [os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu/verify'), self.verify_str]
-        verify_and_convert(cmd, self.rank, file_string)
+        file_string = [os.path.join(checkpoint_path, f'{self.num_gpus}-gpu/verify'), self.verify_str]
+        verify_and_convert(cmd, file_string)
 
     def initialize(self):
         logging.info("Start model artifacts conversion...")
-        self.create_ft_model_artifacts()
+        self.create_ft_model_artifacts(self.model_dir)
         logging.info("load model...")
         self.build_t5_model()
 
     def build_t5_model(self):
         ckpt_config = configparser.ConfigParser()
 
-        ckpt_config_path = os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu', 'config.ini')
+        ckpt_config_path = os.path.join(self.model_dir, f'{self.num_gpus}-gpu', 'config.ini')
         if os.path.isfile(ckpt_config_path):
             ckpt_config.read(ckpt_config_path)
         else:
@@ -112,7 +115,7 @@ class T5Model(InferenceModel):
             position_embedding_type=position_embedding_type,
             weight_data_type=weight_data_type,
         )
-        model_path = os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu')
+        model_path = os.path.join(self.model_dir, f'{self.num_gpus}-gpu')
         ft_encoder_weight.load_from_bin(model_path, "Megatron")
         ft_decoding_weight.load_from_bin(model_path, "Megatron")
 

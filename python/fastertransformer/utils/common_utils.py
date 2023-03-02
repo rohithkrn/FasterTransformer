@@ -13,10 +13,14 @@ import subprocess
 import logging
 import torch.distributed as dist
 import shutil
+from ..examples.gpt import comm
 
 
-def verify_and_convert(command: str, rank, file_string):
-    if rank == 0:
+def verify_and_convert(command: str, file_string):
+
+    # If there are parallel processes, convert only at rank 0
+    logging.info(f"File string {file_string}")
+    if comm.get_rank() == 0:
         found = False
         if os.path.exists(file_string[0]):
             with open(file_string[0], "r") as f:

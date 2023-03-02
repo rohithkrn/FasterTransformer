@@ -21,12 +21,12 @@ from .utils.common_utils import verify_and_convert
 
 class BLOOMModel(GPTModel):
 
-    def create_ft_model_artifacts(self):
+    def create_ft_model_artifacts(self, checkpoint_path):
         cmd = f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_bloom_convert.py " \
-              f"-i {self.model} -o {self.DEFAULT_SAVE_DIR}/ -p {self.num_convert_process} " \
+              f"-i {self.model} -o {checkpoint_path}/ -p {self.num_convert_process} " \
               f"-tp {self.num_gpus} -dt {self.weight_dtype}"
-        file_string = [os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu/verify'), self.verify_str]
-        verify_and_convert(cmd, self.rank, file_string)
+        file_string = [os.path.join(checkpoint_path, f'{self.num_gpus}-gpu/verify'), self.verify_str]
+        verify_and_convert(cmd, file_string)
 
     def initialize(self):
         padding_side = 'right'  # FT exclusive
@@ -34,7 +34,7 @@ class BLOOMModel(GPTModel):
         self.model_config = AutoConfig.from_pretrained(self.model)
         self.end_id = vars(self.model_config)['eos_token_id']
         logging.info("Start model artifacts conversion...")
-        self.create_ft_model_artifacts()
+        self.create_ft_model_artifacts(self.model_dir)
         logging.info("load model...")
         self.gpt = self.get_model()
 
@@ -46,7 +46,7 @@ class BLOOMModel(GPTModel):
             operate_dtype = self.dtype
             load_int8 = False
 
-        ckpt_path = os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu')
+        ckpt_path = os.path.join(self.model_dir, f'{self.num_gpus}-gpu')
         config_path = os.path.join(ckpt_path, 'config.ini')
         if os.path.isfile(config_path):
             # Read model params from config.

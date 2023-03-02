@@ -26,8 +26,11 @@ class GPTModel(InferenceModel):
 
     def __init__(self, model: str,
                  tensor_parallel_degree: int,
-                 pipeline_parallel_degree: int, dtype: str, **kwargs):
-        super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, **kwargs)
+                 pipeline_parallel_degree: int,
+                 dtype: str,
+                 is_mpi_mode: bool = True,
+                 **kwargs):
+        super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, is_mpi_mode, **kwargs)
         self.tokenizer = AutoTokenizer.from_pretrained(self.model)
         self.gpt = None
 
@@ -36,7 +39,7 @@ class GPTModel(InferenceModel):
         self.create_ft_model_artifacts()
         logging.info("Converting completed, start loading...")
         ckpt_config = configparser.ConfigParser()
-        ckpt_config_path = os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu', 'config.ini')
+        ckpt_config_path = os.path.join(self.model_dir, f'{self.num_gpus}-gpu', 'config.ini')
         if os.path.isfile(ckpt_config_path):
             ckpt_config.read(ckpt_config_path)
         self.start_id = ckpt_config.getint('gpt', 'start_id')
@@ -70,7 +73,7 @@ class GPTModel(InferenceModel):
                                expert_num=expert_num,
                                moe_k=moe_k,
                                moe_layer_index=moe_layer_index)
-        if not self.gpt.load(ckpt_path=os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu')):
+        if not self.gpt.load(ckpt_path=os.path.join(self.model_dir, f'{self.num_gpus}-gpu')):
             raise IOError("Checkpoint file not found.")
 
     def generate(self, start_ids: torch.Tensor, start_lengths: torch.IntTensor, batch_size, beam_width=1,
@@ -126,10 +129,10 @@ class GPTModel(InferenceModel):
             result.append(outputs)
         return result
 
-    def create_ft_model_artifacts(self):
+    def create_ft_model_artifacts(self, checkpoint_path):
         cmd = "CUDA_VISIBLE_DEVICES=-1 "
         cmd += f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_gpt_convert.py " \
-               f"-i {self.model} -o {self.DEFAULT_SAVE_DIR}/ -p {self.num_convert_process} " \
+               f"-i {self.model} -o {checkpoint_path}/ -p {self.num_convert_process} " \
                f"-i_g {self.num_gpus} -weight_data_type {self.weight_dtype}"
-        file_string = [os.path.join(self.DEFAULT_SAVE_DIR, f'{self.num_gpus}-gpu/verify'), self.verify_str]
-        verify_and_convert(cmd, self.rank, file_string)
+        file_string = [os.path.join(checkpoint_path, f'{self.num_gpus}-gpu/verify'), self.verify_str]
+        verify_and_convert(cmd, file_string)
