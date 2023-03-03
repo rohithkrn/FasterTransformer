@@ -36,7 +36,7 @@ class GPTModel(InferenceModel):
 
     def initialize(self):
         logging.info("Converting hf model to ft model...")
-        self.create_ft_model_artifacts()
+        self.create_ft_model_artifacts(self.model_dir)
         logging.info("Converting completed, start loading...")
         ckpt_config = configparser.ConfigParser()
         ckpt_config_path = os.path.join(self.model_dir, f'{self.num_gpus}-gpu', 'config.ini')
