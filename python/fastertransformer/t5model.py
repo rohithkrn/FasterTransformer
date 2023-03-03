@@ -183,7 +183,7 @@ class T5Model(InferenceModel):
 
     def pipeline_generate(self, inputs, **kwargs):
         input_tokens = self.tokenizer.batch_encode_plus(inputs, return_tensors="pt", padding=True)
-        batch_token, batch_seq_len = self.generate(input_tokens)
+        batch_token, batch_seq_len = self.generate(input_tokens, **kwargs)
         decoded_batch_token = []
         for j in range(len(batch_token)):
             decoded_batch_token.append(self.tokenizer.decode(batch_token[j][0][:batch_seq_len[j][0]],
