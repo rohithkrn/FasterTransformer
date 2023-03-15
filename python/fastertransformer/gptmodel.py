@@ -48,7 +48,7 @@ class GPTModel(InferenceModel):
         head_num = ckpt_config.getint('gpt', 'head_num')
         size_per_head = ckpt_config.getint('gpt', 'size_per_head')
         vocab_size = ckpt_config.getint('gpt', 'vocab_size')
-        max_seq_len = 1024
+        max_seq_len = ckpt_config.getint('gpt', 'max_pos_seq_len')
         shared_contexts_ratio = 1
         weights_data_type = self.weight_dtype
         gpt_with_moe = False
