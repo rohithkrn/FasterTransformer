@@ -116,7 +116,6 @@ class GPTModel(InferenceModel):
             start_lengths = torch.IntTensor(start_lengths)
             tokens_batch = self.generate(start_ids, start_lengths, batch_size, beam_width, output_len, **kwargs)
 
-            outputs = []
             tokens_batch = tokens_batch.cpu().numpy()
             for i, (input, tokens) in enumerate(zip(inputs, tokens_batch)):
                 for beam_id in range(beam_width):
@@ -124,9 +123,8 @@ class GPTModel(InferenceModel):
                     if skip_end_tokens:
                         token = token[token != self.end_id]
                     output = self.tokenizer.decode(token) if detokenize else ' '.join(str(t) for t in token.tolist())
-                    outputs.append(output)
+                    result.append(output)
 
-            result.append(outputs)
         return result
 
     def create_ft_model_artifacts(self, checkpoint_path):
