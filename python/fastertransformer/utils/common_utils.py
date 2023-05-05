@@ -24,7 +24,7 @@ def verify_and_convert(command: str, file_string):
         found = False
         if os.path.exists(file_string[0]):
             with open(file_string[0], "r") as f:
-                if file_string[1] == f.readlines()[0]:
+                if file_string[1] == f.readlines()[0].strip():
                     found = True
                 else:
                     shutil.rmtree(os.path.dirname(file_string[0]))  # remove dir if something is there

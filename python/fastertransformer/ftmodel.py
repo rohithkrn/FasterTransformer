@@ -26,9 +26,9 @@ class InferenceModel:
         self.tensor_parallel_degree = tensor_parallel_degree
         self.pipeline_parallel_degree = pipeline_parallel_degree
         self.set_data_type(dtype)
-        self.lib_path = self.DEFAULT_LIB_PATH if "lib_path" not in kwargs else kwargs["lib_path"]
+        self.lib_path = kwargs.get("lib_path", self.DEFAULT_LIB_PATH)
         self.verify_str = f"{self.model}-{self.weight_dtype}-{self.tensor_parallel_degree}-{self.pipeline_parallel_degree}"
-        self.num_convert_process = 8 if "num_convert_process" not in kwargs else kwargs["num_convert_process"]
+        self.num_convert_process = kwargs.get("num_convert_process", 8)
         self.num_gpus = tensor_parallel_degree * pipeline_parallel_degree
 
         if is_mpi_mode:

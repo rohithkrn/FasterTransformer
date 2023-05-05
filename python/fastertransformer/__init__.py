@@ -15,6 +15,7 @@ from .ftmodel import InferenceModel
 from .optmodel import OPTModel
 from .t5model import T5Model
 from .gptmodel import GPTModel
+from .gptneoxmodel import GPTNeoXModel
 
 # TODO: support commented model
 SUPPORTED_MODEL_TYPES = {
@@ -23,7 +24,7 @@ SUPPORTED_MODEL_TYPES = {
     # "gpt_neo": None,
     # "gptj": None,
     "opt": OPTModel,
-    # "gpt_neox": None,
+    "gpt_neox": GPTNeoXModel,
     "bloom": BLOOMModel,
 }
 
