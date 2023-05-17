@@ -14,25 +14,13 @@ import logging
 import os
 import math
 import torch
-from torch.nn.utils.rnn import pad_sequence
-from transformers import AutoTokenizer
 
-from .ftmodel import InferenceModel
+from .gptmodel import GPTModel
 from .examples.gptneox.gptneox import GptNeoX
 from .utils.common_utils import verify_and_convert
 
 
-class GPTNeoXModel(InferenceModel):
-
-    def __init__(self, model: str,
-                 tensor_parallel_degree: int,
-                 pipeline_parallel_degree: int,
-                 dtype: str,
-                 is_mpi_mode: bool = True,
-                 **kwargs):
-        super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, is_mpi_mode, **kwargs)
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model)
-        self.gpt_neox = None
+class GPTNeoXModel(GPTModel):
 
     def initialize(self):
         logging.info("Converting hf model to ft model...")
@@ -41,15 +29,16 @@ class GPTNeoXModel(InferenceModel):
         ckpt_config_path = os.path.join(self.model_dir, f'{self.num_gpus}-gpu', 'config.ini')
         if os.path.isfile(ckpt_config_path):
             ckpt_config.read(ckpt_config_path)
-        self.start_id = ckpt_config.getint('gptneox', 'start_id')
-        self.end_id = ckpt_config.getint('gptneox', 'end_id')
-        layer_num = ckpt_config.getint('gptneox', 'num_layer')
-        head_num = ckpt_config.getint('gptneox', 'head_num')
-        size_per_head = ckpt_config.getint('gptneox', 'size_per_head')
-        vocab_size = ckpt_config.getint('gptneox', 'vocab_size')
-        rotary_embedding = ckpt_config.getint('gptneox', 'rotary_embedding')
-        inter_size = ckpt_config.getint('gptneox', 'inter_size')
-        use_gptj_residual = ckpt_config.getint('gptneox', 'use_gptj_residual')
+        model_name = 'gptneox'
+        self.start_id = ckpt_config.getint(model_name, 'start_id')
+        self.end_id = ckpt_config.getint(model_name, 'end_id')
+        layer_num = ckpt_config.getint(model_name, 'num_layer')
+        head_num = ckpt_config.getint(model_name, 'head_num')
+        size_per_head = ckpt_config.getint(model_name, 'size_per_head')
+        vocab_size = ckpt_config.getint(model_name, 'vocab_size')
+        rotary_embedding = ckpt_config.getint(model_name, 'rotary_embedding')
+        inter_size = ckpt_config.getint(model_name, 'inter_size')
+        use_gptj_residual = ckpt_config.getint(model_name, 'use_gptj_residual')
         max_seq_len = 1024
         weights_data_type = self.weight_dtype
         inference_data_type = self.dtype
@@ -92,32 +81,6 @@ class GPTNeoXModel(InferenceModel):
         default_args.pop("enable_random_seed")
         with torch.no_grad():
             result = self.gpt_neox(start_ids, start_lengths, output_len, **default_args)
-        return result
-
-    def pipeline_generate(self, inputs, batch_size=1, output_len=32, beam_width=1,
-                          skip_end_tokens=True, detokenize=True, **kwargs):
-        total_iter = math.ceil(len(inputs) / batch_size)
-        result = []
-        for it in range(total_iter):
-            input_batch = inputs[it * batch_size: batch_size * (it + 1)]
-            start_ids = [torch.tensor(self.tokenizer.encode(input), dtype=torch.int32, device=self.device) for input in
-                         input_batch]
-            start_lengths = [len(ids) for ids in start_ids]
-            start_ids = pad_sequence(start_ids, batch_first=True, padding_value=self.end_id)
-            start_lengths = torch.IntTensor(start_lengths)
-            tokens_batch = self.generate(start_ids, start_lengths, batch_size, beam_width, output_len, **kwargs)
-
-            outputs = []
-            tokens_batch = tokens_batch.cpu().numpy()
-            for i, (input, tokens) in enumerate(zip(inputs, tokens_batch)):
-                for beam_id in range(beam_width):
-                    token = tokens[beam_id][start_lengths[i]:]  # exclude context input from the output
-                    if skip_end_tokens:
-                        token = token[token != self.end_id]
-                    output = self.tokenizer.decode(token) if detokenize else ' '.join(str(t) for t in token.tolist())
-                    outputs.append(output)
-
-            result.append(outputs)
         return result
 
     def create_ft_model_artifacts(self, checkpoint_path):
