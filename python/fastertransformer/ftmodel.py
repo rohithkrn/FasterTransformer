@@ -16,7 +16,7 @@ from .examples.gpt import comm
 
 
 class InferenceModel:
-    DEFAULT_LIB_PATH = "/usr/local/backends/fastertransformer"
+    DEFAULT_LIB_PATH = "/opt/tritonserver/backends/fastertransformer"
     DEFAULT_SAVE_DIR = os.path.join(tempfile.gettempdir(), "ft_model")
 
     def __init__(self, model: str, tensor_parallel_degree, pipeline_parallel_degree, dtype="fp32", is_mpi_mode=True,
