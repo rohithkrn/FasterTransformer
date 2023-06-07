@@ -16,14 +16,15 @@ from transformers import AutoConfig, AutoTokenizer
 
 from .gptmodel import GPTModel
 from .examples.gpt import bloom
-from .utils.common_utils import verify_and_convert
+from .utils.common_utils import verify_and_convert, download_model
 
 
 class BLOOMModel(GPTModel):
 
     def create_ft_model_artifacts(self, checkpoint_path):
+        download_path = download_model(self.model, "*.safetensors")
         cmd = f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_bloom_convert.py " \
-              f"-i {self.model} -o {checkpoint_path}/ -p {self.num_convert_process} " \
+              f"-i {download_path} -o {checkpoint_path}/ -p {self.num_convert_process} " \
               f"-tp {self.num_gpus} -dt {self.weight_dtype}"
         file_string = [os.path.join(checkpoint_path, f'{self.num_gpus}-gpu/verify'), self.verify_str]
         verify_and_convert(cmd, file_string)

@@ -13,14 +13,15 @@ import subprocess
 import logging
 import torch.distributed as dist
 import shutil
-from ..examples.gpt import comm
+from huggingface_hub import snapshot_download
+from pathlib import Path
 
 
 def verify_and_convert(command: str, file_string):
 
     # If there are parallel processes, convert only at rank 0
     logging.info(f"File string {file_string}")
-    if comm.get_rank() == 0:
+    if not dist.is_initialized() or dist.get_rank() == 0:
         found = False
         if os.path.exists(file_string[0]):
             with open(file_string[0], "r") as f:
@@ -44,3 +45,23 @@ def execute_command_with_rank(command: str, rank):
         subprocess.check_call(command, shell=True)
     if dist.is_initialized():
         dist.barrier()
+
+
+def download_model(model_id, model_fmt, download_dir="/tmp/hf_downloaded_model"):
+    if not dist.is_initialized() or dist.get_rank() == 0:
+        if os.path.exists(model_id):
+            return model_id
+        local_model_path = Path(download_dir)
+        local_model_path.mkdir(exist_ok=True)
+        model_name = model_id
+        # Only download pytorch checkpoint files
+        allow_patterns = ["*.json", "*.txt", "*.model", model_fmt]
+
+        # - Leverage the snapshot library to download the model since the model is stored in repository using LFS
+        return snapshot_download(
+            repo_id=model_name,
+            cache_dir=local_model_path,
+            allow_patterns=allow_patterns,
+            local_dir_use_symlinks=False
+        )
+    return None

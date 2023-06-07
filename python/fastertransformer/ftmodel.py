@@ -11,18 +11,18 @@
 import logging
 import os
 import tempfile
-
-from .examples.gpt import comm
+import torch.distributed as dist
 
 
 class InferenceModel:
     DEFAULT_LIB_PATH = "/opt/tritonserver/backends/fastertransformer"
     DEFAULT_SAVE_DIR = os.path.join(tempfile.gettempdir(), "ft_model")
 
-    def __init__(self, model: str, tensor_parallel_degree, pipeline_parallel_degree, dtype="fp32", is_mpi_mode=True,
+    def __init__(self, model: str, tensor_parallel_degree, pipeline_parallel_degree, dtype="fp32",
                  **kwargs):
         logging.info("Initializing inference model with FasterTransformer")
         self.model = model
+        self.tokenizer = None
         self.tensor_parallel_degree = tensor_parallel_degree
         self.pipeline_parallel_degree = pipeline_parallel_degree
         self.set_data_type(dtype)
@@ -31,16 +31,15 @@ class InferenceModel:
         self.num_convert_process = kwargs.get("num_convert_process", 8)
         self.num_gpus = tensor_parallel_degree * pipeline_parallel_degree
 
-        if is_mpi_mode:
-            # Multi-GPU setup
-            comm.initialize_model_parallel(self.tensor_parallel_degree, self.pipeline_parallel_degree)
-            self.rank = comm.get_rank()
-            self.device = comm.get_device()
-            self.model_dir = self.model if os.path.exists(self.model) else self.DEFAULT_SAVE_DIR
-            verify_path = os.path.join(self.model, f'{self.num_gpus}-gpu/verify')
-            if os.path.exists(verify_path):
-                with open(verify_path, "r") as f:
-                    self.verify_str = f.readlines()[0]
+        if os.getenv('OMPI_COMM_WORLD_SIZE'):
+            dist.init_process_group("mpi")
+
+        self.model_dir = self.model if os.path.exists(self.model) else self.DEFAULT_SAVE_DIR
+        # Check model if partitioned
+        verify_path = os.path.join(self.model, f'{self.num_gpus}-gpu/verify')
+        if os.path.exists(verify_path):
+            with open(verify_path, "r") as f:
+                self.verify_str = f.readlines()[0]
 
     def set_data_type(self, dtype):
         self.dtype = dtype

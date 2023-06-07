@@ -27,9 +27,8 @@ class T5Model(InferenceModel):
                  tensor_parallel_degree: int,
                  pipeline_parallel_degree: int,
                  dtype: str,
-                 is_mpi_mode: bool = True,
                  **kwargs):
-        super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, is_mpi_mode, **kwargs)
+        super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, **kwargs)
         self.tokenizer = T5Tokenizer.from_pretrained(self.model)
         self.t5: FTT5 = None
         if self.dtype == "int8":

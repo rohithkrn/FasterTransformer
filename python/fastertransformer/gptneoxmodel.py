@@ -12,7 +12,6 @@
 import configparser
 import logging
 import os
-import math
 import torch
 
 from .gptmodel import GPTModel

@@ -28,9 +28,8 @@ class GPTModel(InferenceModel):
                  tensor_parallel_degree: int,
                  pipeline_parallel_degree: int,
                  dtype: str,
-                 is_mpi_mode: bool = True,
                  **kwargs):
-        super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, is_mpi_mode, **kwargs)
+        super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, **kwargs)
         self.tokenizer = AutoTokenizer.from_pretrained(self.model)
         self.gpt = None
 
@@ -109,7 +108,7 @@ class GPTModel(InferenceModel):
         result = []
         for it in range(total_iter):
             input_batch = inputs[it * batch_size: batch_size * (it + 1)]
-            start_ids = [torch.tensor(self.tokenizer.encode(input), dtype=torch.int32, device=self.device) for input in
+            start_ids = [torch.tensor(self.tokenizer.encode(input), dtype=torch.int32) for input in
                          input_batch]
             start_lengths = [len(ids) for ids in start_ids]
             start_ids = pad_sequence(start_ids, batch_first=True, padding_value=self.end_id)

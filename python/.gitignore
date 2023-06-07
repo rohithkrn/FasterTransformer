@@ -2,3 +2,4 @@ fastertransformer/examples
 *DS_Store
 *.egg-info*
 dist/
+*.whl
