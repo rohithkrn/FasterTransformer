@@ -51,12 +51,14 @@ def init_inference(model: str,
                    pipeline_parallel_degree: int,
                    dtype: str = 'fp32',
                    use_triton=None,
+                   do_streaming=False,
                    **kwargs):
     inference_model = _get_inference_model(model,
                                            tensor_parallel_degree,
                                            pipeline_parallel_degree,
                                            dtype,
                                            use_triton=use_triton,
+                                           do_streaming=do_streaming,
                                            **kwargs)
     inference_model.initialize()
     return inference_model
@@ -67,6 +69,7 @@ def _get_inference_model(model: str,
                          pipeline_parallel_degree: int,
                          dtype: str = 'fp32',
                          use_triton=None,
+                         do_streaming=False,
                          **kwargs):
     model_config = AutoConfig.from_pretrained(model)
     if model_config.model_type not in SUPPORTED_MODEL_TYPES.keys():
@@ -76,5 +79,5 @@ def _get_inference_model(model: str,
     model = SUPPORTED_MODEL_TYPES[model_config.model_type](
         model, tensor_parallel_degree, pipeline_parallel_degree, dtype, **kwargs)
     if use_triton:
-        model = TritonModel(model, model_config.model_type)
+        model = TritonModel(model, model_config.model_type, do_streaming=do_streaming)
     return model
