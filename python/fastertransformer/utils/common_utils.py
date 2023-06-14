@@ -9,11 +9,12 @@
 # BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for
 # the specific language governing permissions and limitations under the License.
 import os.path
+import os.listdir
 import subprocess
 import logging
 import torch.distributed as dist
 import shutil
-from huggingface_hub import snapshot_download
+from huggingface_hub import snapshot_download, HfApi
 from pathlib import Path
 
 
@@ -47,15 +48,22 @@ def execute_command_with_rank(command: str, rank):
         dist.barrier()
 
 
-def download_model(model_id, model_fmt, download_dir="/tmp/hf_downloaded_model"):
+def download_model(model_id, download_dir="/tmp/hf_downloaded_model"):
     if not dist.is_initialized() or dist.get_rank() == 0:
         if os.path.exists(model_id):
             return model_id
         local_model_path = Path(download_dir)
         local_model_path.mkdir(exist_ok=True)
         model_name = model_id
+        hf_api = HfApi()
+        model_files = hf_api.list_files_info(model_name)
+        safetensor_files = [f for f in model_files if f.rfilename.endswith(".safetensors")]
         # Only download pytorch checkpoint files
-        allow_patterns = ["*.json", "*.txt", "*.model", model_fmt]
+        allow_patterns = ["*.json", "*.txt", "*.model"]
+        if len(safetensor_files) > 0:
+            allow_patterns += ["*.safetensors"]
+        else:
+            allow_patterns += ["*.bin"]
 
         # - Leverage the snapshot library to download the model since the model is stored in repository using LFS
         return snapshot_download(

@@ -22,7 +22,7 @@ from .utils.common_utils import verify_and_convert, download_model
 class BLOOMModel(GPTModel):
 
     def create_ft_model_artifacts(self, checkpoint_path):
-        download_path = download_model(self.model, "*.safetensors")
+        download_path = download_model(self.model)
         cmd = f"python {os.path.dirname(os.path.realpath(__file__))}/examples/gpt/huggingface_bloom_convert.py " \
               f"-i {download_path} -o {checkpoint_path}/ -p {self.num_convert_process} " \
               f"-tp {self.num_gpus} -dt {self.weight_dtype}"
