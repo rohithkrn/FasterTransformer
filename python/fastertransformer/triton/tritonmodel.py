@@ -162,5 +162,7 @@ class TritonModel:
                     configs[idx + 2] = f'    string_value: "{tp}"\n'
                 if "model_checkpoint_path" in line:
                     configs[idx + 2] = f'    string_value: "{model_dir}/{tp}-gpu/"\n'
+                if "key: \"data_type\"" in line:
+                    configs[idx + 2] = f'    string_value: "{self.model.dtype}"\n'
         with open(config_path, "w") as f:
             f.writelines(configs)
