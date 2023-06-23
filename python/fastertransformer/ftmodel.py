@@ -50,6 +50,9 @@ class InferenceModel:
         else:
             raise NotImplementedError(f"Not implemented for {dtype}!")
 
+    def set_tokenizer(self, tokenizer):
+        self.tokenizer = tokenizer
+
     def initialize(self):
         raise NotImplementedError("Method not implemented for InferenceModel")
 

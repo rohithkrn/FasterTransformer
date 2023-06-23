@@ -29,7 +29,6 @@ class T5Model(InferenceModel):
                  dtype: str,
                  **kwargs):
         super().__init__(model, tensor_parallel_degree, pipeline_parallel_degree, dtype, **kwargs)
-        self.tokenizer = T5Tokenizer.from_pretrained(self.model)
         self.t5: FTT5 = None
         if self.dtype == "int8":
             raise NotImplementedError("T5 model does not support int8 mode!")
@@ -181,6 +180,8 @@ class T5Model(InferenceModel):
         return result
 
     def pipeline_generate(self, inputs, **kwargs):
+        if not self.tokenizer:
+            self.tokenizer = T5Tokenizer.from_pretrained(self.model)
         input_tokens = self.tokenizer.batch_encode_plus(inputs, return_tensors="pt", padding=True)
         batch_token, batch_seq_len = self.generate(input_tokens, **kwargs)
         decoded_batch_token = []

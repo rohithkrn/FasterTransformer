@@ -64,6 +64,9 @@ class TritonModel:
         self.predictor = self.core.load_model(self.base_name)
         self.compute_input_info(self.predictor.metadata)
 
+    def set_tokenizer(self, tokenizer):
+        self.tokenizer = tokenizer
+
     def compute_input_info(self, metadata):
         for element in metadata['inputs']:
             self.input_info[element['name']] = {'dtype': self.NUMPY_DTYPE_MAPPER[element['datatype']],
