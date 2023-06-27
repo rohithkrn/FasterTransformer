@@ -248,7 +248,7 @@ if __name__ == "__main__":
         multiprocessing_context = multiprocessing.get_context()
         pool_fn = multiprocessing_context.Pool
     else:
-        torch.multiprocessing.set_start_method("spawn")
+        torch.multiprocessing.set_start_method("spawn", force=True)
         pool_fn = multiprocessing.Pool
 
 
