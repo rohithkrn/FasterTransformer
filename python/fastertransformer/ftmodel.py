@@ -12,7 +12,7 @@ import logging
 import os
 import tempfile
 import torch.distributed as dist
-
+from transformers import AutoTokenizer
 
 class InferenceModel:
     DEFAULT_LIB_PATH = "/opt/tritonserver/backends/fastertransformer"
@@ -52,6 +52,12 @@ class InferenceModel:
 
     def set_tokenizer(self, tokenizer):
         self.tokenizer = tokenizer
+
+    def get_tokenizer(self):
+        if not self.tokenizer:
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model)
+        return self.tokenizer
+
 
     def initialize(self):
         raise NotImplementedError("Method not implemented for InferenceModel")

@@ -103,8 +103,7 @@ class GPTModel(InferenceModel):
 
     def pipeline_generate(self, inputs, batch_size=1, output_len=32, beam_width=1,
                           skip_end_tokens=True, detokenize=True, **kwargs):
-        if not self.tokenizer:
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model)
+        self.get_tokenizer()
         total_iter = math.ceil(len(inputs) / batch_size)
         result = []
         for it in range(total_iter):

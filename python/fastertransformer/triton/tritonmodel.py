@@ -67,6 +67,11 @@ class TritonModel:
     def set_tokenizer(self, tokenizer):
         self.tokenizer = tokenizer
 
+    def get_tokenizer(self):
+        if not self.tokenizer:
+            self.tokenizer = self.model.get_tokenizer()
+        return self.tokenizer
+
     def compute_input_info(self, metadata):
         for element in metadata['inputs']:
             self.input_info[element['name']] = {'dtype': self.NUMPY_DTYPE_MAPPER[element['datatype']],
@@ -85,11 +90,13 @@ class TritonModel:
         return self.predictor.inference(kwargs)
 
     def pipeline_generate(self, inputs: list, output_length: list, padding_side="right", **kwargs):
+        self.get_tokenizer()
         final_kwargs, _ = self.input_builder(inputs, output_length, kwargs, padding_side=padding_side)
         result = self.generate(**final_kwargs)
         return self.tokenizer.batch_decode(result['output_ids'].squeeze(1), skip_special_tokens=True)
 
     def stream_generate(self, inputs: list, output_length: list, padding_side="right", **kwargs):
+        self.get_tokenizer()
         final_kwargs, offset = self.input_builder(inputs, output_length, kwargs, padding_side=padding_side)
         gen = self.predictor.stream_inference(final_kwargs)
         prev = None
