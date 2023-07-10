@@ -12,14 +12,15 @@ import logging
 import os
 import tempfile
 import torch.distributed as dist
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModelForSeq2SeqLM
+from peft import PeftConfig, PeftModel
 
 class InferenceModel:
     DEFAULT_LIB_PATH = "/opt/tritonserver/backends/fastertransformer"
     DEFAULT_SAVE_DIR = os.path.join(tempfile.gettempdir(), "ft_model")
 
     def __init__(self, model: str, tensor_parallel_degree, pipeline_parallel_degree, dtype="fp32",
-                 **kwargs):
+                 is_peft=False, **kwargs):
         logging.info("Initializing inference model with FasterTransformer")
         self.model = model
         self.tokenizer = None
@@ -33,6 +34,10 @@ class InferenceModel:
 
         if os.getenv('OMPI_COMM_WORLD_SIZE'):
             dist.init_process_group("mpi")
+
+        if is_peft:
+            logging.info("Detected Peft checkpoints. Merging lora module with base model")
+            self.merge_and_save_lora_model(model)
 
         self.model_dir = self.model if os.path.exists(self.model) else self.DEFAULT_SAVE_DIR
         # Check model if partitioned
@@ -70,3 +75,31 @@ class InferenceModel:
 
     def create_ft_model_artifacts(self, checkpoint_path):
         raise NotImplementedError("Method not implemented for InferenceModel")
+
+    def merge_and_save_lora_model(self, model_path):
+        peft_config = PeftConfig.from_pretrained(model_path)
+        base_model_name = peft_config.base_model_name_or_path
+        if os.path.exists(os.path.join(model_path, base_model_name)):
+            base_model_name = os.path.join(model_path, base_model_name)
+        save_path = os.path.join(tempfile.gettempdir(), base_model_name + '-lora')
+        if peft_config.task_type == 'SEQ_2_SEQ_LM':
+            model_cls = AutoModelForSeq2SeqLM
+        elif peft_config.task_type == 'CAUSAL_LM':
+            model_cls = AutoModelForCausalLM
+        else:
+            raise ValueError(
+                f"FasterTransformer does not support LoRA models for task {peft_config.task_type}."
+                f"Supported tasks are SEQ_2_SEQ_LM and CAUSAL_LM."
+            )
+        if not dist.is_initialized() or dist.get_rank() == 0:
+            base_model = model_cls.from_pretrained(
+                base_model_name,
+                low_cpu_mem_usage=True
+            )
+            peft_model = PeftModel.from_pretrained(base_model, model_path)
+            merged_model = peft_model.merge_and_unload()
+            merged_model.save_pretrained(save_path)
+        self.tokenizer = AutoTokenizer.from_pretrained(base_model_name)
+        self.model = save_path
+        if dist.is_initialized():
+            dist.barrier()

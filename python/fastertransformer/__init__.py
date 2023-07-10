@@ -9,6 +9,7 @@
 # BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for
 # the specific language governing permissions and limitations under the License.
 from transformers import AutoConfig
+from peft import PeftConfig
 
 from .bloommodel import BLOOMModel
 from .ftmodel import InferenceModel
@@ -52,6 +53,7 @@ def init_inference(model: str,
                    dtype: str = 'fp32',
                    use_triton=None,
                    do_streaming=False,
+                   is_peft=False,
                    **kwargs):
     inference_model = _get_inference_model(model,
                                            tensor_parallel_degree,
@@ -59,6 +61,7 @@ def init_inference(model: str,
                                            dtype,
                                            use_triton=use_triton,
                                            do_streaming=do_streaming,
+                                           is_peft=is_peft,
                                            **kwargs)
     inference_model.initialize()
     return inference_model
@@ -70,14 +73,20 @@ def _get_inference_model(model: str,
                          dtype: str = 'fp32',
                          use_triton=None,
                          do_streaming=False,
+                         is_peft=False,
                          **kwargs):
-    model_config = AutoConfig.from_pretrained(model)
+    if is_peft:
+        peft_config = PeftConfig.from_pretrained(model)
+        base_model_name = peft_config.base_model_name_or_path
+        model_config = AutoConfig.from_pretrained(base_model_name)
+    else:
+        model_config = AutoConfig.from_pretrained(model)
     if model_config.model_type not in SUPPORTED_MODEL_TYPES.keys():
         raise ValueError(f"{model_config.model_type} type not supported for model {model}"
                          f"Supported model arch: {SUPPORTED_MODEL_TYPES.keys()}")
 
     model = SUPPORTED_MODEL_TYPES[model_config.model_type](
-        model, tensor_parallel_degree, pipeline_parallel_degree, dtype, **kwargs)
+        model, tensor_parallel_degree, pipeline_parallel_degree, dtype, is_peft=is_peft, **kwargs)
     if use_triton:
         model = TritonModel(model, model_config.model_type, do_streaming=do_streaming)
     return model
